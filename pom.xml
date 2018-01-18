@@ -5,17 +5,17 @@
   <version>0.0.1-SNAPSHOT</version>
   
 <repositories>
-		<repository>
-		    <id>jitpack.io</id>
-		    <url>https://jitpack.io</url>
-		</repository>
-	</repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
   <dependencies>
   <!-- https://mvnrepository.com/artifact/com.webcerebrium/binance-api -->
-	<dependency>
-	    <groupId>com.github.binance-exchange</groupId>
-	    <artifactId>binance-java-api</artifactId>
-	    <version>-SNAPSHOT</version>
-	</dependency>
-  	</dependencies>
+    <dependency>
+        <groupId>com.github.binance-exchange</groupId>
+        <artifactId>binance-java-api</artifactId>
+        <version>-SNAPSHOT</version>
+    </dependency>
+      </dependencies>
 </project>
