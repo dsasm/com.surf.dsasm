@@ -2,11 +2,13 @@ package com.surf.dsasm;
 
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
+import com.binance.api.client.domain.market.TickerStatistics;
 
 public class TraderManager {
-	public void kill() {
+	public void tryout() {
 		BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance("API-KEY", "SECRET");
 		BinanceApiRestClient client = factory.newRestClient();
-		System.out.println(client.getServerTime());
+		TickerStatistics tickerStatistics = client.get24HrPriceStatistics("TRXETH");
+		System.out.println(tickerStatistics.getPriceChangePercent());
 	}
 }
