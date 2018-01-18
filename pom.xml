@@ -16,4 +16,13 @@
       </plugin>
     </plugins>
   </build>
+  <dependencies>
+  <!-- https://mvnrepository.com/artifact/com.webcerebrium/binance-api -->
+	<dependency>
+	    <groupId>com.webcerebrium</groupId>
+	    <artifactId>binance-api</artifactId>
+	    <version>1.0.2</version>
+	</dependency>
+
+  	</dependencies>
 </project>
