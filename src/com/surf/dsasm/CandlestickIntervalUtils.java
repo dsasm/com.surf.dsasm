@@ -46,9 +46,9 @@ public class CandlestickIntervalUtils {
 				
 			case WEEKLY:
 				return 10080;
+			default:
+				return 0;
 		}
-		
-		return 0;
 	}
 
 }

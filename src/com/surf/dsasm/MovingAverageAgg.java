@@ -1,6 +1,6 @@
 package com.surf.dsasm;
 
-public class MovingAverageAgg implements Comparable{
+public class MovingAverageAgg implements Comparable<MovingAverageAgg>{
 	private String symbol;
 	private Double agg;
 	
@@ -25,8 +25,9 @@ public class MovingAverageAgg implements Comparable{
 		this.agg = agg;
 	}
 
-	@Override
-	public int compareTo(Object o) {
-		return agg.compareTo(((MovingAverageAgg) o).getAgg());
+	
+	public int compareTo(MovingAverageAgg o) {
+		// TODO Auto-generated method stub
+		return agg.compareTo( o.getAgg());
 	}
 }
