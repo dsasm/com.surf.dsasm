@@ -3,6 +3,13 @@ package com.surf.dsasm;
 import com.binance.api.client.domain.market.CandlestickInterval;
 
 public class CandlestickIntervalUtils {
+	
+	/**
+	 * Takes a time, switches on it and returns the amount of minutes that interval is.
+	 * E.g. 12 Hours is 720 minutes
+	 * @param time
+	 * @return
+	 */
 	public static int timeInMinutes(CandlestickInterval time) {
 		switch (time) {
 			case ONE_MINUTE:

@@ -8,6 +8,11 @@ import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.Candlestick;
 import com.binance.api.client.domain.market.CandlestickInterval;
 
+/**
+ * Thread for getting candle stick for a stock
+ * 
+ *
+ */
 public class CoinCandlestickGetter extends TimerTask{
 	
 	BinanceApiRestClient client;

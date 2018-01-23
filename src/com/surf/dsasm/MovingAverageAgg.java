@@ -1,5 +1,8 @@
 package com.surf.dsasm;
-
+/**
+ * Just getters and setters + compare for average
+ *
+ */
 public class MovingAverageAgg implements Comparable<MovingAverageAgg>{
 	private String symbol;
 	private Double agg;
