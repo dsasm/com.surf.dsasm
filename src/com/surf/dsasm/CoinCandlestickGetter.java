@@ -34,13 +34,16 @@ public class CoinCandlestickGetter extends TimerTask{
 			
 			//get the average over the last 12 hours 
 			List<Candlestick> candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.TWELVE_HOURLY);
-			averages.add(CandleStickUtils.fourPointAverageExp(candlesticks.get(0), 12*60));
+			Double largerTimeperiodEMA = MovingAverageUtils.determineMovingAverage(candlesticks, CandlestickInterval.TWELVE_HOURLY);
 			
 			//get the average over the last 4 hours 
 			candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FOUR_HORLY);
-			averages.add(CandleStickUtils.fourPointAverageExp(candlesticks.get(0), 4*60));
+			Double smallerTimeperiodEMA = MovingAverageUtils.determineMovingAverage(candlesticks, CandlestickInterval.FOUR_HORLY);
 			
-			MovingAverageAgg newMAAgg = new MovingAverageAgg(currentCoin, averages.get(0) - averages.get(1));
+			Double difference = smallerTimeperiodEMA - largerTimeperiodEMA;
+			Double percentageDifference = (difference / largerTimeperiodEMA) *100;
+			
+			MovingAverageAgg newMAAgg = new MovingAverageAgg(currentCoin, percentageDifference);
 			
 			synchronized (TopCoinDeterminer.sortedTopSymbols) {
 				
