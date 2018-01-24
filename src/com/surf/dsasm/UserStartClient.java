@@ -37,11 +37,11 @@ public class UserStartClient implements Runnable {
 		while(!stopped) {
 			try {
 				boolean firstRun = true; 
-				
+				boolean noTrades = false;
 				//anything needed to be run on first start up
 				//this will always be run fist and then initialise other shit depending on outcome
 				
-				if(firstRun) {
+				noNeed: if(firstRun) {
 					timeSinceRestart = System.currentTimeMillis();
 					//First thing to do is get active orders, need order Ids and then need to start threads
 					//which are to monitor these 
@@ -55,6 +55,11 @@ public class UserStartClient implements Runnable {
 						if(status1.equals(currOrder.getStatus()) || status2.equals(currOrder.getStatus())){
 							activeOrders.add(currOrder);
 						}
+					}
+					
+					if(activeOrders.isEmpty()) {
+						noTrades = true; 
+						break noNeed;
 					}
 					
 					for(Order activeOrder : activeOrders) {
