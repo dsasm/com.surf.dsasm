@@ -27,11 +27,18 @@ public class CoinWatcher implements Runnable{
 				CoinWatcherManager.currentWatchIndex +=1;
 			}
 		}
+		running = true;
+		//These loops need to be thought through and changed based on how we are going to determine when a thread should stop
 		while (running) {
-			while(!bought && running) {
+			
+			//While nothing has been bought
+			while(!bought) {
+				
+				//Check if a buy should be placed
 				if ( shouldBuy()) {
 					fakeBuy();
 				}
+				//Else wait 30 seconds and check again
 				else {
 					try {
 						Thread.sleep(1000*30);
@@ -42,6 +49,7 @@ public class CoinWatcher implements Runnable{
 				}
 				
 			}
+			//Items have been bought so check on them more often and determine when to sell
 			try {
 				watchIntently();
 			} catch (InterruptedException e) {
@@ -52,16 +60,27 @@ public class CoinWatcher implements Runnable{
 		
 	}
 	
+	
 	public void watchIntently() throws InterruptedException {
-		while(bought && !sold) {
+		
+		//While the coins havent been sold
+		while(!sold) {
+			//Check if they should be sold
 			if (shouldSell()) {
 				fakeSell();
 				sold=true;
 			}
-			Thread.sleep(1000*15);
+			//If shouldnt sell, wait 15 seconds and try again
+			if (!sold ) Thread.sleep(1000*15);
 		}
 	}
 	
+	/**
+	 * Determines to percentage change between the first param {@code Double} and the seconds Param
+	 * @param start
+	 * @param close
+	 * @return
+	 */
 	public Double toPercentageDiff(Double start, Double close) {
 		return ((close -start )/ start)*100;
 	}
@@ -69,27 +88,37 @@ public class CoinWatcher implements Runnable{
 	public boolean shouldBuy() {
 		
 		synchronized (CoinWatcherManager.client) {
-		
+			
+			//Get the candlesticks in 5 minute chunks
 			List<Candlestick> candlesticks = CoinWatcherManager.client.getCandlestickBars(thisSymbol, CandlestickInterval.FIVE_MINUTES);
+			
+			//Get the very earliest price which will be used to base whether or not to buy and sell
 			Double openingPrice = new Double(candlesticks.get(2).getOpen());
-			boolean toReturn = false;
 			for(int i = 2; i >=0; i--) {
+				//Get each closing price within the last 15 minutes - if the change has increased beyon a certain % then buy else return false
 				Double closingTime = new Double(candlesticks.get(i).getClose());
 				Double change = toPercentageDiff(openingPrice, closingTime);
 				if (change >= GlobalVariables.buyingPercentage) {
-					toReturn = true;
+					return true;
 				}
 			}
-			return toReturn;
+			return false;
 		}
 	}
 	
+	/**
+	 * For testing viability of an algorithm this method will be used
+	 */
 	public void fakeBuy() {
+		
+		
 		synchronized (CoinWatcherManager.client) {
 			Double lastPrice = Double.valueOf(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 			synchronized (CoinWatcherManager.amountEthereum) {
 				quantity = CoinWatcherManager.amountEthereum / lastPrice;
 				CoinWatcherManager.amountEthereum -= lastPrice * quantity;
+				boughtAt = lastPrice;
+				highestProfitInPrice = new Double(0);
 			}
 			
 		}
@@ -106,6 +135,7 @@ public class CoinWatcher implements Runnable{
 	}
 	public boolean shouldSell() {
 		synchronized (CoinWatcherManager.client) {
+		//Get the latest prices
 		List<TickerPrice> bars = CoinWatcherManager.client.getAllPrices();
 			for (TickerPrice price : bars) {
 				if (price.getSymbol().equals(thisSymbol)) {
@@ -116,6 +146,7 @@ public class CoinWatcher implements Runnable{
 					    //TODO implement 	getConfidenceInMove();
 						return true;
 					}
+					if (priceDiff > profitDiff) highestProfitInPrice = priceDiff;
 					
 				}
 			}

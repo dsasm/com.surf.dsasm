@@ -2,7 +2,6 @@ package com.surf.dsasm;
 
 import java.util.List;
 
-import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.Candlestick;
 import com.binance.api.client.domain.market.CandlestickInterval;
 

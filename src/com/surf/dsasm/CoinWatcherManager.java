@@ -2,7 +2,6 @@ package com.surf.dsasm;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,6 +19,8 @@ public class CoinWatcherManager extends TimerTask{
 	
 	public CoinWatcherManager( BinanceApiRestClient client
 	, List<MovingAverageAgg> toWatch) {
+		
+		//Sets up a Thread pool of Coin Watchers
 		amountEthereum  = new Double (100);
 		CoinWatcherManager.toWatch = new LinkedList<MovingAverageAgg> (toWatch);
 		CoinWatcherManager.client = client;
