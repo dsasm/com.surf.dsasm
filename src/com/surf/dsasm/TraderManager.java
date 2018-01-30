@@ -1,5 +1,7 @@
 package com.surf.dsasm;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -34,6 +36,13 @@ public class TraderManager {
 		Timer regulater = new Timer();
 		TimerTask task = new TopCoinDeterminer(client);
 		regulater.schedule(task , 0, 1000*60*60*12);
+		
+		while (!TopCoinDeterminer.finished) {
+			
+		}
+		List<MovingAverageAgg> toWatch = new LinkedList<MovingAverageAgg>(TopCoinDeterminer.sortedTopSymbols);
+		TimerTask CWMtask = new CoinWatcherManager(client, toWatch);
+		
 	}
 	
 	public BinanceApiClientFactory createNewFactory(String apiKey, String apiSecret) {

@@ -23,7 +23,8 @@ public class TopCoinDeterminer extends TimerTask {
 	public static List<String> allSymbols;
 
 	public static List<MovingAverageAgg> sortedTopSymbols;
-
+	public static boolean finished = false;
+	
 	public TopCoinDeterminer(BinanceApiRestClient client) {
 		this.client = client;
 	}
@@ -44,6 +45,11 @@ public class TopCoinDeterminer extends TimerTask {
 			regulater = new Timer();
 			TimerTask task = new CoinCandlestickGetter(client);
 			regulater.schedule(task, 0, 20 * 1000);
+			
+			while(currentCoinIndex < allSymbols.size() -1) {
+				
+			}
+			finished = true;
 		}
 	}
 

@@ -53,7 +53,7 @@ public class CoinCandlestickGetter extends TimerTask{
 			synchronized (TopCoinDeterminer.sortedTopSymbols) {
 				
 				//Then add to the list of TopSymbols if the list hasnt reached 5 TODO : move 5 into a constant to be managed
-				if (TopCoinDeterminer.sortedTopSymbols.size() < 5) {
+				if (TopCoinDeterminer.sortedTopSymbols.size() < GlobalVariables.numberOfWatchers) {
 					
 					TopCoinDeterminer.sortedTopSymbols.add(newMAAgg);
 					
