@@ -110,14 +110,22 @@ public class CoinWatcher implements Runnable{
 	 * For testing viability of an algorithm this method will be used
 	 */
 	public void fakeBuy() {
-		
+		//This is alot of code just to say change the amount of fake ethereum the program thinks it has and to reset the highestProfit so far
 		
 		synchronized (CoinWatcherManager.client) {
+			
 			Double lastPrice = Double.valueOf(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 			synchronized (CoinWatcherManager.amountEthereum) {
+				//Get the amount of coins that can be bought
 				quantity = CoinWatcherManager.amountEthereum / lastPrice;
+				
+				//subtract that amount * price from the amount of Ethereum that is faked 
 				CoinWatcherManager.amountEthereum -= lastPrice * quantity;
+				
+				//record the price it was bought at
 				boughtAt = lastPrice;
+				
+				//Ensure the highestProfit is 0 as this is a buy 
 				highestProfitInPrice = new Double(0);
 			}
 			
@@ -125,28 +133,44 @@ public class CoinWatcher implements Runnable{
 	}
 	
 	public void fakeSell() {
+		
+		//This just adds the new worth of the number of fake ethereum to the amount of ethereum the program thinks we have
 		synchronized (CoinWatcherManager.client) {
+			
 			Double lastPrice = Double.valueOf(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 			synchronized (CoinWatcherManager.amountEthereum) {
+				
 				CoinWatcherManager.amountEthereum += lastPrice * quantity;
+				quantity = 0d;
 			}
-			
 		}
 	}
 	public boolean shouldSell() {
 		synchronized (CoinWatcherManager.client) {
-		//Get the latest prices
-		List<TickerPrice> bars = CoinWatcherManager.client.getAllPrices();
-			for (TickerPrice price : bars) {
+			//Get the latest prices
+			List<TickerPrice> prices = CoinWatcherManager.client.getAllPrices();
+			//for each price find the one that is m,anaged by this thread
+			for (TickerPrice price : prices) {
 				if (price.getSymbol().equals(thisSymbol)) {
+					
+					//work out the difference between the original price and the price now
 					Double priceDiff = new Double(price.getPrice()) - boughtAt;
-					Double profitDiff = highestProfitInPrice - boughtAt;
-					Double changeToProfit = priceDiff / profitDiff;
+					
+					//highest profit so far is stored as the difference between the price then and the original price
+					Double profitDiff = highestProfitInPrice;
+					
+					//work out the percentage change since the highest profit and now (and protect against dividing by 0)
+					Double changeToProfit = (profitDiff == 0) ? 0 : priceDiff / profitDiff;
+					
+					//if the new price is bigger than the highestProfitSoFar then replace the highestProfit so far
+					if (priceDiff > profitDiff) highestProfitInPrice = priceDiff;
+					
+					//if the difference is bigger than the % decreace allowed for a coin then SELL SELL SELL
 					if (changeToProfit < GlobalVariables.stopLossCutOff) {
 					    //TODO implement 	getConfidenceInMove();
 						return true;
 					}
-					if (priceDiff > profitDiff) highestProfitInPrice = priceDiff;
+					
 					
 				}
 			}
