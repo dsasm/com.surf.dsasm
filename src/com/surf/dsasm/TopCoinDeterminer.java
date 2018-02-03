@@ -29,7 +29,7 @@ public class TopCoinDeterminer extends TimerTask {
 	public static boolean finished = false;
 	
 	public TopCoinDeterminer(BinanceApiRestClient client) {
-		this.client = client;
+		TopCoinDeterminer.client = client;
 	}
 
 	@Override
