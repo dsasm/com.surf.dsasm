@@ -1,8 +1,10 @@
 package com.surf.dsasm;
 
 import java.util.List;
+import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.TickerPrice;
@@ -15,7 +17,7 @@ import com.binance.api.client.domain.market.TickerPrice;
  */
 public class TopCoinDeterminer extends TimerTask {
 
-	private BinanceApiRestClient client;
+	private static BinanceApiRestClient client;
 
 	private static Timer regulater;
 
@@ -23,6 +25,7 @@ public class TopCoinDeterminer extends TimerTask {
 	public static List<String> allSymbols;
 
 	public static List<MovingAverageAgg> sortedTopSymbols;
+	public static Queue<String> queueGoodCoins = new ConcurrentLinkedQueue<String>();
 	public static boolean finished = false;
 	
 	public TopCoinDeterminer(BinanceApiRestClient client) {
@@ -32,7 +35,11 @@ public class TopCoinDeterminer extends TimerTask {
 	@Override
 	public void run() {
 
-		if (client != null && regulater != null) {
+		generateQueue();
+	}
+	
+	public static void generateQueue() {
+		if (client != null) {
 			// The reason for the getAll is to look at new coins too
 			List<TickerPrice> allPrices = client.getAllPrices();
 
@@ -49,12 +56,30 @@ public class TopCoinDeterminer extends TimerTask {
 			while(currentCoinIndex < allSymbols.size() -1) {
 				
 			}
+			
 			finished = true;
+			
+			
 		}
+	}
+		
+	public static void emptyQueue() {
+		generateQueue();
 	}
 
 	public static void stopRetrieval() {
 		regulater.cancel();
+		listtoQueue();
 	}
-
+	private static void listtoQueue() {
+		synchronized(sortedTopSymbols) {
+			for(MovingAverageAgg agg : sortedTopSymbols) {
+				synchronized(queueGoodCoins) {
+					queueGoodCoins.add(agg.getSymbol());
+					sortedTopSymbols.clear();
+				}
+			}
+		}
+		
+	}
 }

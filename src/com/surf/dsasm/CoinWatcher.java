@@ -56,11 +56,17 @@ public class CoinWatcher implements Runnable{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			getNewCoin();
 		}
 		
 	}
 	
-	
+	public void getNewCoin() {
+		synchronized(CoinWatcherManager.queueOfGoodCoins) {
+			thisSymbol = CoinWatcherManager.queueOfGoodCoins.poll();
+			if (CoinWatcherManager.queueOfGoodCoins.size() ==0) TopCoinDeterminer.emptyQueue();
+		}
+	}
 	public void watchIntently() throws InterruptedException {
 		
 		//While the coins havent been sold
