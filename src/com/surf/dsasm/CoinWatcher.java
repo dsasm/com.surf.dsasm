@@ -21,11 +21,11 @@ public class CoinWatcher implements Runnable{
 	public void run(){
 		
 		//Get a Symbol to be watching
-		synchronized(CoinWatcherManager.toWatch) {
-			synchronized (CoinWatcherManager.currentWatchIndex) {
-				thisSymbol = CoinWatcherManager.toWatch.get(CoinWatcherManager.currentWatchIndex).getSymbol();
-				CoinWatcherManager.currentWatchIndex +=1;
-			}
+		synchronized (TopCoinDeterminer.queueGoodCoins) {
+				while(TopCoinDeterminer.queueGoodCoins.size() == 0) {
+					System.out.println(TopCoinDeterminer.queueGoodCoins.size());
+				}
+				thisSymbol =TopCoinDeterminer.queueGoodCoins.poll();
 		}
 		running = true;
 		//These loops need to be thought through and changed based on how we are going to determine when a thread should stop
@@ -65,13 +65,16 @@ public class CoinWatcher implements Runnable{
 	}
 	
 	public void getNewCoin() {
-		synchronized(CoinWatcherManager.queueOfGoodCoins) {
-			System.out.println("CoinWatcher - get new coin");
-			thisSymbol = CoinWatcherManager.queueOfGoodCoins.poll();
-			if (CoinWatcherManager.queueOfGoodCoins.size() ==0) {
+		synchronized(TopCoinDeterminer.queueGoodCoins) {
+			if (TopCoinDeterminer.queueGoodCoins.size() ==0) {
 				System.out.println("CoinWatcher - regen Queue" );
 				TopCoinDeterminer.emptyQueue();
 			}
+			while(TopCoinDeterminer.queueGoodCoins.size() == 0) {
+				
+			}
+			System.out.println("CoinWatcher - get new coin");
+			thisSymbol = TopCoinDeterminer.queueGoodCoins.poll();
 		}
 	}
 	public void watchIntently() throws InterruptedException {
@@ -106,10 +109,10 @@ public class CoinWatcher implements Runnable{
 			List<Candlestick> candlesticks = CoinWatcherManager.client.getCandlestickBars(thisSymbol, CandlestickInterval.FIVE_MINUTES);
 			
 			//Get the very earliest price which will be used to base whether or not to buy and sell
-			Double openingPrice = new Double(candlesticks.get(2).getOpen());
-			for(int i = 2; i >=0; i--) {
+			Double openingPrice = new Double(candlesticks.get(candlesticks.size() -3).getOpen());
+			for(int i = 3; i >0; i--) {
 				//Get each closing price within the last 15 minutes - if the change has increased beyon a certain % then buy else return false
-				Double closingTime = new Double(candlesticks.get(i).getClose());
+				Double closingTime = new Double(candlesticks.get(candlesticks.size() -i).getClose());
 				Double change = toPercentageDiff(openingPrice, closingTime);
 				if (change >= GlobalVariables.buyingPercentage) {
 					return true;

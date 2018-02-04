@@ -8,6 +8,8 @@ import java.util.logging.Logger;
 
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
+import com.binance.api.client.domain.market.Candlestick;
+import com.binance.api.client.domain.market.CandlestickInterval;
 import com.binance.api.client.domain.market.TickerStatistics;
 
 public class TraderManager {
@@ -32,6 +34,10 @@ public class TraderManager {
 		System.out.println("------");
 		System.out.println("priceChangePercentage: "+tickerStatistics.getPriceChangePercent());
 		System.out.println("getPriceChange: "+tickerStatistics.getPriceChange());
+		List<Candlestick> candles = client.getCandlestickBars("TRXETH", CandlestickInterval.FIVE_MINUTES);
+		
+		System.out.println("first candle: "+candles.get(0).getHigh());
+		System.out.println("last candle: "+candles.get(candles.size()-1).getHigh());
 		
 		client = factory.newRestClient();
 		Timer regulater = new Timer();
@@ -41,15 +47,17 @@ public class TraderManager {
 		TopCoinDeterminer task = new TopCoinDeterminer(client);
 		Thread TCD = new Thread(task);
 		TCD.start();
-		
-		while (!TopCoinDeterminer.finished) {
+		System.out.print("still not finished");
+		while (TopCoinDeterminer.queueGoodCoins.size() != GlobalVariables.numberOfWatchers) {
 			
+			//System.out.print("still not finished");
 		}
 		System.out.println("TCD FINISHED");
 		List<MovingAverageAgg> toWatch = new LinkedList<MovingAverageAgg>(TopCoinDeterminer.sortedTopSymbols);
 		System.out.println("Starting up Coin Watcher Manager");
 		CoinWatcherManager CWMtask = new CoinWatcherManager(client, toWatch);
-		CWMtask.run();
+		Thread CWM = new Thread(CWMtask);
+		CWM.start();
 		
 	}
 	
