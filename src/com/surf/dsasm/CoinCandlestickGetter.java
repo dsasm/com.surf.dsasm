@@ -33,21 +33,23 @@ public class CoinCandlestickGetter extends TimerTask{
 			
 			//Get the current coin + symbol
 			synchronized (TopCoinDeterminer.currentCoinIndex ) {
+				
 				currentCoin = TopCoinDeterminer.allSymbols.get(TopCoinDeterminer.currentCoinIndex);
-				TopCoinDeterminer.currentCoinIndex =TopCoinDeterminer.currentCoinIndex +1; 
+				TopCoinDeterminer.currentCoinIndex =TopCoinDeterminer.currentCoinIndex +1;
+				System.out.println(currentCoin+ " Is the current coin the coincandlestickGetter is on");
 			}
 			
 			//get the average over the last 12 hours 
 			List<Candlestick> candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.TWELVE_HOURLY);
-			Double largerTimeperiodEMA = MovingAverageUtils.determineMovingAverage(candlesticks, CandlestickInterval.TWELVE_HOURLY);
+			Double largerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWELVE_HOURLY)));
 			
 			//get the average over the last 4 hours 
 			candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FOUR_HORLY);
-			Double smallerTimeperiodEMA = MovingAverageUtils.determineMovingAverage(candlesticks, CandlestickInterval.FOUR_HORLY);
+			Double smallerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FOUR_HORLY)));
 			
 			Double difference = smallerTimeperiodEMA - largerTimeperiodEMA;
 			Double percentageDifference = (difference / largerTimeperiodEMA) *100;
-			
+			System.out.println("Smaller "+smallerTimeperiodEMA +" | Larger "+ largerTimeperiodEMA+ " | Profit % "+percentageDifference);
 			MovingAverageAgg newMAAgg = new MovingAverageAgg(currentCoin, percentageDifference);
 			
 			synchronized (TopCoinDeterminer.sortedTopSymbols) {

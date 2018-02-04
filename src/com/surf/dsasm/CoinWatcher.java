@@ -30,12 +30,14 @@ public class CoinWatcher implements Runnable{
 		running = true;
 		//These loops need to be thought through and changed based on how we are going to determine when a thread should stop
 		while (running) {
-			
+
+			System.out.println("CoinWatcher - Inside Running");
 			//While nothing has been bought
 			while(!bought) {
-				
+				boolean shouldBuy = shouldBuy();
 				//Check if a buy should be placed
-				if ( shouldBuy()) {
+				System.out.println("CoinWatcher - Should Buy "+shouldBuy);
+				if (shouldBuy ) {
 					fakeBuy();
 				}
 				//Else wait 30 seconds and check again
@@ -49,6 +51,7 @@ public class CoinWatcher implements Runnable{
 				}
 				
 			}
+			System.out.println("CoinWatcher - bought "+thisSymbol);
 			//Items have been bought so check on them more often and determine when to sell
 			try {
 				watchIntently();
@@ -63,8 +66,12 @@ public class CoinWatcher implements Runnable{
 	
 	public void getNewCoin() {
 		synchronized(CoinWatcherManager.queueOfGoodCoins) {
+			System.out.println("CoinWatcher - get new coin");
 			thisSymbol = CoinWatcherManager.queueOfGoodCoins.poll();
-			if (CoinWatcherManager.queueOfGoodCoins.size() ==0) TopCoinDeterminer.emptyQueue();
+			if (CoinWatcherManager.queueOfGoodCoins.size() ==0) {
+				System.out.println("CoinWatcher - regen Queue" );
+				TopCoinDeterminer.emptyQueue();
+			}
 		}
 	}
 	public void watchIntently() throws InterruptedException {
@@ -145,7 +152,7 @@ public class CoinWatcher implements Runnable{
 			
 			Double lastPrice = Double.valueOf(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 			synchronized (CoinWatcherManager.amountEthereum) {
-				
+				System.out.println("CoinWatcher - selling "+thisSymbol+" | Profit: "+(boughtAt - lastPrice)*quantity );
 				CoinWatcherManager.amountEthereum += lastPrice * quantity;
 				quantity = 0d;
 			}

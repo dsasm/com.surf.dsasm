@@ -12,6 +12,7 @@ public class MovingAverageUtils {
 		int AmountOfcandlesticks= CandlestickIntervalUtils.timeInMinutes(interval) / 5;
 		Double sum = new Double(0);
 		int candlestickIndex; 
+		if (AmountOfcandlesticks - 1 >= candlesticks.size()) AmountOfcandlesticks = candlesticks.size() - 1;
 		for(candlestickIndex = 1; candlestickIndex < AmountOfcandlesticks-1; candlestickIndex ++) {
 			sum = sum + CandleStickUtils.fourPointAverageExp(candlesticks.get(candlestickIndex), new Double(CandlestickIntervalUtils.timeInMinutes(interval) / 5));
 		}

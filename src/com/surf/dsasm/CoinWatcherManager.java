@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 
 import com.binance.api.client.BinanceApiRestClient;
 
-public class CoinWatcherManager extends TimerTask{
+public class CoinWatcherManager implements Runnable{
 	
 	public static BinanceApiRestClient client;
 	public static Queue<String> queueOfGoodCoins = new ConcurrentLinkedQueue<String>();
@@ -26,11 +26,11 @@ public class CoinWatcherManager extends TimerTask{
 		amountEthereum  = new Double (100);
 		CoinWatcherManager.toWatch = new LinkedList<MovingAverageAgg> (toWatch);
 		CoinWatcherManager.client = client;
+		System.out.println("Creating CoinWatchers");
 		pool = Executors.newFixedThreadPool(GlobalVariables.numberOfWatchers);
 	}
 	
 	
-	@Override
 	public void run() {
 		
 		pool.execute(new CoinWatcher());

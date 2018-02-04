@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.Logger;
 
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
@@ -34,14 +35,21 @@ public class TraderManager {
 		
 		client = factory.newRestClient();
 		Timer regulater = new Timer();
-		TimerTask task = new TopCoinDeterminer(client);
-		regulater.schedule(task , 0, 1000*60*60*12);
+		System.out.println();
+		System.out.println();
+		System.out.println("Starting up Top Coin Determiner");
+		TopCoinDeterminer task = new TopCoinDeterminer(client);
+		Thread TCD = new Thread(task);
+		TCD.start();
 		
 		while (!TopCoinDeterminer.finished) {
 			
 		}
+		System.out.println("TCD FINISHED");
 		List<MovingAverageAgg> toWatch = new LinkedList<MovingAverageAgg>(TopCoinDeterminer.sortedTopSymbols);
-		TimerTask CWMtask = new CoinWatcherManager(client, toWatch);
+		System.out.println("Starting up Coin Watcher Manager");
+		CoinWatcherManager CWMtask = new CoinWatcherManager(client, toWatch);
+		CWMtask.run();
 		
 	}
 	

@@ -1,5 +1,6 @@
 package com.surf.dsasm;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Timer;
@@ -15,16 +16,16 @@ import com.binance.api.client.domain.market.TickerPrice;
  * and eth candle sticks for last 12 hours
  *
  */
-public class TopCoinDeterminer extends TimerTask {
+public class TopCoinDeterminer implements Runnable {
 
 	private static BinanceApiRestClient client;
 
 	private static Timer regulater;
 
 	public static Integer currentCoinIndex = 0;
-	public static List<String> allSymbols;
+	public static List<String> allSymbols = new LinkedList<String>();
 
-	public static List<MovingAverageAgg> sortedTopSymbols;
+	public static List<MovingAverageAgg> sortedTopSymbols = new LinkedList<MovingAverageAgg>();
 	public static Queue<String> queueGoodCoins = new ConcurrentLinkedQueue<String>();
 	public static boolean finished = false;
 	
@@ -32,9 +33,9 @@ public class TopCoinDeterminer extends TimerTask {
 		TopCoinDeterminer.client = client;
 	}
 
-	@Override
-	public void run() {
 
+	public void run() {
+		System.out.println("Generate Queue for the first time");
 		generateQueue();
 	}
 	
@@ -45,40 +46,39 @@ public class TopCoinDeterminer extends TimerTask {
 
 			// Seperate all the symbols from the current prices
 			for (TickerPrice price : allPrices) {
-				allSymbols.add(price.getSymbol());
+				if (price.getSymbol().endsWith("ETH")) allSymbols.add(price.getSymbol());
 			}
 
 			// Then every 20 seconds get the /ETH candlesticks for the last 12 hours
 			regulater = new Timer();
 			TimerTask task = new CoinCandlestickGetter(client);
-			regulater.schedule(task, 0, 20 * 1000);
-			
-			while(currentCoinIndex < allSymbols.size() -1) {
-				
-			}
-			
-			finished = true;
-			
+			regulater.schedule(task, 0, 2 * 1000);
 			
 		}
 	}
 		
 	public static void emptyQueue() {
+		System.out.println("Queue was empty, regenerating");
 		generateQueue();
 	}
 
 	public static void stopRetrieval() {
+		System.out.println("ListToQueue");
 		regulater.cancel();
 		listtoQueue();
 	}
 	private static void listtoQueue() {
 		synchronized(sortedTopSymbols) {
 			for(MovingAverageAgg agg : sortedTopSymbols) {
+				
 				synchronized(queueGoodCoins) {
+					System.out.println("ADDING "+agg.getSymbol()+" to queue" );
 					queueGoodCoins.add(agg.getSymbol());
-					sortedTopSymbols.clear();
 				}
 			}
+			System.out.println("Setting finished to true and clearing the list" );
+			finished = true;
+			sortedTopSymbols.clear();
 		}
 		
 	}
