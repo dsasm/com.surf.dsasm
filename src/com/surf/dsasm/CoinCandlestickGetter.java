@@ -44,8 +44,8 @@ public class CoinCandlestickGetter extends TimerTask{
 			Double largerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWELVE_HOURLY)));
 			
 			//get the average over the last 4 hours 
-			candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FOUR_HORLY);
-			Double smallerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FOUR_HORLY)));
+			candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FOUR_HOURLY);
+			Double smallerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FOUR_HOURLY)));
 			
 			Double difference = smallerTimeperiodEMA - largerTimeperiodEMA;
 			Double percentageDifference = (difference / largerTimeperiodEMA) *100;

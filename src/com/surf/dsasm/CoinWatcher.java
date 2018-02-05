@@ -110,12 +110,11 @@ public class CoinWatcher implements Runnable{
 			
 			//Get the very earliest price which will be used to base whether or not to buy and sell
 			Double openingPrice = new Double(candlesticks.get(candlesticks.size() -3).getOpen());
+			Double priceIndicatingASpike = openingPrice * (1+GlobalVariables.buyingPercentage);
 			for(int i = 3; i >0; i--) {
 				//Get each closing price within the last 15 minutes - if the change has increased beyon a certain % then buy else return false
 				Double closingTime = new Double(candlesticks.get(candlesticks.size() -i).getClose());
-				Double change = toPercentageDiff(openingPrice, closingTime);
-				System.out.println("buuyin because "+change);
-				if (change >= GlobalVariables.buyingPercentage) {
+				if (closingTime >= priceIndicatingASpike) {
 					return true;
 				}
 			}
@@ -144,6 +143,7 @@ public class CoinWatcher implements Runnable{
 				
 				//Ensure the highestProfit is 0 as this is a buy 
 				highestProfitInPrice = new Double(0);
+				bought = true;
 			}
 			
 		}
