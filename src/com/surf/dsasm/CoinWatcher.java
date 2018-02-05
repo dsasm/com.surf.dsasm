@@ -111,7 +111,7 @@ public class CoinWatcher implements Runnable{
 			//Get the very earliest price which will be used to base whether or not to buy and sell
 			Double openingPrice = new Double(candlesticks.get(candlesticks.size() -3).getOpen());
 			Double priceIndicatingASpike = openingPrice * (1+GlobalVariables.buyingPercentage);
-			for(int i = 3; i >0; i--) {
+			for(int i = 2; i >0; i--) {
 				//Get each closing price within the last 15 minutes - if the change has increased beyon a certain % then buy else return false
 				Double closingTime = new Double(candlesticks.get(candlesticks.size() -i).getClose());
 				if (closingTime >= priceIndicatingASpike) {
@@ -134,7 +134,6 @@ public class CoinWatcher implements Runnable{
 			synchronized (CoinWatcherManager.amountEthereum) {
 				//Get the amount of coins that can be bought
 				quantity = CoinWatcherManager.amountEthereum / lastPrice;
-				
 				//subtract that amount * price from the amount of Ethereum that is faked 
 				CoinWatcherManager.amountEthereum -= lastPrice * quantity;
 				
@@ -157,6 +156,7 @@ public class CoinWatcher implements Runnable{
 			Double lastPrice = Double.valueOf(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 			synchronized (CoinWatcherManager.amountEthereum) {
 				System.out.println("CoinWatcher - selling "+thisSymbol+" | Profit: "+(boughtAt - lastPrice)*quantity );
+				System.out.println("Current following - " + (GlobalVariables.followingEthereumFake - GlobalVariables.startingFakeAmount));
 				CoinWatcherManager.amountEthereum += lastPrice * quantity;
 				quantity = 0d;
 			}
@@ -171,22 +171,26 @@ public class CoinWatcher implements Runnable{
 				if (price.getSymbol().equals(thisSymbol)) {
 					
 					//work out the difference between the original price and the price now
-					Double priceDiff = new Double(price.getPrice()) - boughtAt;
+					Double priceDiff = new Double(price.getPrice());
 					
 					//highest profit so far is stored as the difference between the price then and the original price
-					Double profitDiff = highestProfitInPrice;
+					Double profitDiff = highestProfitInPrice ;
 					
-					//work out the percentage change since the highest profit and now (and protect against dividing by 0)
-					Double changeToProfit = (profitDiff == 0) ? 0 : priceDiff / profitDiff;
 					
-					//if the new price is bigger than the highestProfitSoFar then replace the highestProfit so far
-					if (priceDiff > profitDiff) highestProfitInPrice = priceDiff;
+					System.out.println("bought at "+boughtAt+"  |  current price "+priceDiff+"  |  "+highestProfitInPrice);
+					System.out.println("price diff " +priceDiff+" - Cutoff "+((highestProfitInPrice+boughtAt)*GlobalVariables.stopLossCutOff));
 					
 					//if the difference is bigger than the % decreace allowed for a coin then SELL SELL SELL
-					if (changeToProfit < GlobalVariables.stopLossCutOff) {
+					if (priceDiff < ((highestProfitInPrice+boughtAt)*GlobalVariables.stopLossCutOff)) {
 					    //TODO implement 	getConfidenceInMove();
 						return true;
 					}
+					else if(priceDiff < boughtAt) {
+						return true;
+					}
+					
+					//if the new price is bigger than the highestProfitSoFar then replace the highestProfit so far
+					if (priceDiff > (highestProfitInPrice+boughtAt)) highestProfitInPrice = priceDiff-boughtAt;
 					
 					
 				}

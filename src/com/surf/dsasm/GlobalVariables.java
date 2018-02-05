@@ -15,4 +15,8 @@ public class GlobalVariables {
 	public static final Double stopLossCutOff = 0.9;
 	
 	public static final Double buyingPercentage = 0.01;
+	
+	public static final Double startingFakeAmount =100d;
+	
+	public static Double followingEthereumFake = 100d;
 }

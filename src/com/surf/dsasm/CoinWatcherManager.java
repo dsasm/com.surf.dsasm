@@ -23,7 +23,7 @@ public class CoinWatcherManager implements Runnable{
 	, List<MovingAverageAgg> toWatch) {
 		
 		//Sets up a Thread pool of Coin Watchers
-		amountEthereum  = new Double (100);
+		amountEthereum  = GlobalVariables.startingFakeAmount;
 		CoinWatcherManager.toWatch = new LinkedList<MovingAverageAgg> (toWatch);
 		CoinWatcherManager.client = client;
 		System.out.println("Creating CoinWatchers");

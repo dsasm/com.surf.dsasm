@@ -52,7 +52,7 @@ public class TopCoinDeterminer implements Runnable {
 			// Then every 20 seconds get the /ETH candlesticks for the last 12 hours
 			regulater = new Timer();
 			TimerTask task = new CoinCandlestickGetter(client);
-			regulater.schedule(task, 0, 2 * 1000);
+			regulater.schedule(task, 0, 1 * 1000);
 			
 		}
 	}
@@ -63,8 +63,9 @@ public class TopCoinDeterminer implements Runnable {
 	}
 
 	public static void stopRetrieval() {
-		System.out.println("ListToQueue");
+		
 		regulater.cancel();
+		System.out.println("ListToQueue");
 		listtoQueue();
 	}
 	private static void listtoQueue() {

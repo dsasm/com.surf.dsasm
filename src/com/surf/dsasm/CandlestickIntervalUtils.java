@@ -33,7 +33,7 @@ public class CandlestickIntervalUtils {
 			case TWO_HOURLY:
 				return 120;
 				
-			case FOUR_HOURLY:
+			case FOUR_HORLY:
 				return 240;
 				
 			case SIX_HOURLY:
