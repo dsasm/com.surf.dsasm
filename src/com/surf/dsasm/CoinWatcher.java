@@ -1,6 +1,7 @@
 package com.surf.dsasm;
 
 import java.io.IOException;
+import java.time.LocalTime;
 import java.util.List;
 
 import com.binance.api.client.domain.market.Candlestick;
@@ -231,14 +232,13 @@ public class CoinWatcher implements Runnable{
 			
 			Double lastPrice = Double.valueOf(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 			synchronized (CoinWatcherManager.amountEthereum) {
-				System.out.println("CoinWatcher - selling "+thisSymbol+" | Profit Per: "+(lastPrice - boughtAt )+" | quantity: "+quantity+" | % Incr : "+((lastPrice / boughtAt)*100 )+" | Selling At: "+lastPrice);
+				System.out.println("1 - CoinWatcher - selling "+thisSymbol+" | Profit Per: "+(lastPrice - boughtAt )+" | quantity: "+quantity+" | % Incr : "+((lastPrice / boughtAt)*100 )+" | Selling At: "+lastPrice);
 				Double lastEthAmount = new Double(CoinWatcherManager.amountEthereum);
 				CoinWatcherManager.amountEthereum += lastPrice * quantity;
 				try {
 					Double newAmount = new Double(CoinWatcherManager.amountEthereum);
 					String currAmount = newAmount.toString();
-					TraderManager.writer.write( currAmount + " - % incr since last " + ((newAmount / lastEthAmount)*100 )+" - % incr since start "+((newAmount / GlobalVariables.startingFakeAmount)*100) + " - TimeStarted "+TraderManager.timeStarted.toString());
-					TraderManager.writer.newLine();
+					TraderManager.writer.write( "2 - "+currAmount + " - % incr since last " + ((newAmount / lastEthAmount)*100 )+" - % incr since start "+((newAmount / GlobalVariables.startingFakeAmount)*100) + " - TimeStarted "+TraderManager.timeStarted.toString()+" - Trade made at"+LocalTime.now().toString()+"\n");
 					TraderManager.writer.flush();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
