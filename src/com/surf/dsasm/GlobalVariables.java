@@ -14,7 +14,7 @@ public class GlobalVariables {
 	//The percentage of the highest profit a current coins price is allowed to be before SELL SELL SELL
 	public static final Double stopLossCutOff = 0.9;
 	
-	public static final Double buyingPercentage = 0.01;
+	public static final Double buyingPercentage = 0.005;
 	
 	public static final Double startingFakeAmount =100d;
 	

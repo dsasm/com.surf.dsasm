@@ -37,12 +37,25 @@ public class CoinWatcher implements Runnable{
 			//While nothing has been bought
 			while(!bought && !skip) {
 				boolean shouldBuy = shouldBuy();
+				
+				List<Candlestick> candlesticksLargerAvg = CoinWatcherManager.client.getCandlestickBars(thisSymbol, CandlestickInterval.TWO_HOURLY);
+				Double largerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticksLargerAvg.get(candlesticksLargerAvg.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWO_HOURLY)));
+				
+				//get the average over the last 4 hours 
+				List<Candlestick> candlesticksSmallerEMA = CoinWatcherManager.client.getCandlestickBars(thisSymbol, CandlestickInterval.FIFTEEN_MINUTES);
+				Double smallerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticksSmallerEMA.get(candlesticksSmallerEMA.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FIFTEEN_MINUTES)));
+				
 				//Check if a buy should be placed
 				System.out.println("CoinWatcher - Should Buy "+shouldBuy);
 				if (shouldBuy ) {
 					fakeBuy();
 				}
 				else if (System.currentTimeMillis() - timeStartedWatching > 1000*60*30) {
+					System.out.println("This Coin is Taking far too long to show any improvement - skipping and getting new Coin");
+					skip = true;
+				}
+				else if (largerTimeperiodEMA > smallerTimeperiodEMA) {
+					System.out.println("This Coin Doesn't Seem viable anymore - regening queue");
 					skip = true;
 				}
 				//Else wait 30 seconds and check again
@@ -56,10 +69,11 @@ public class CoinWatcher implements Runnable{
 				}
 				
 			}
-			System.out.println("CoinWatcher - bought "+thisSymbol);
+			if (bought)System.out.println("CoinWatcher - bought "+thisSymbol);
 			//Items have been bought so check on them more often and determine when to sell
 			if (!skip) {
 				try {
+					System.out.println("should watch intently");
 					watchIntently();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -68,7 +82,10 @@ public class CoinWatcher implements Runnable{
 			}
 			getNewCoin();
 			bought = false;
+			boughtAt = 0d;
+			highestProfitInPrice = 0d;
 			skip = false;
+			sold = false;
 		}
 		
 	}
@@ -118,17 +135,26 @@ public class CoinWatcher implements Runnable{
 			//Get the candlesticks in 5 minute chunks
 			List<Candlestick> candlesticks = CoinWatcherManager.client.getCandlestickBars(thisSymbol, CandlestickInterval.FIVE_MINUTES);
 			
+			
+			
 			//Get the very earliest price which will be used to base whether or not to buy and sell
-			Double openingPrice = new Double(candlesticks.get(candlesticks.size() -3).getOpen());
+			Double openingPrice = new Double(candlesticks.get(candlesticks.size() -3).getHigh());
 			Double priceIndicatingASpike = openingPrice * (1+GlobalVariables.buyingPercentage);
-			for(int i = 2; i >0; i--) {
-				//Get each closing price within the last 15 minutes - if the change has increased beyon a certain % then buy else return false
-				Double closingTime = new Double(candlesticks.get(candlesticks.size() -i).getClose());
-				if (closingTime >= priceIndicatingASpike) {
-					return true;
+			
+			List<TickerPrice> prices = CoinWatcherManager.client.getAllPrices();
+			for(TickerPrice price : prices) {
+				if (price.getSymbol().equals(thisSymbol)) {
+					System.out.print("ShouldBuy - opening : "+openingPrice + "  |  neededForBuy : "+priceIndicatingASpike+"  |  current : "+price.getPrice());
+					if(Double.valueOf(price.getPrice()) >= priceIndicatingASpike) {
+						return gainConfidenceInBuy(new Double(price.getPrice()));
+					}
+					break;
+					
 				}
 			}
+			
 			return false;
+			
 		}
 	}
 	
@@ -157,6 +183,46 @@ public class CoinWatcher implements Runnable{
 			
 		}
 	}
+	public boolean gainConfidenceInBuy(Double priceBasedOn) {
+		//wait a half minute then check if it has increased, then buy
+		System.out.println("Gaining Confidence in Buy - passed "+priceBasedOn);
+		try {
+			Thread.sleep(1000*30);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Double newPrice = new Double(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
+		
+		if (newPrice > priceBasedOn) {
+			System.out.println("Confidence Gained with new Price "+newPrice);
+			return true;
+		}
+		else if (newPrice == priceBasedOn) return gainConfidenceInBuy(priceBasedOn);
+		else{
+			System.out.println("Confidence Lost with new Price "+newPrice);
+			return false;}
+	}
+	public boolean gainConfidenceInSell(Double priceBasedOn) {
+		//wait a half minute then check if it has increased, then buy
+		//wait a half minute then check if it has increased, then buy
+		System.out.println("Gaining Confidence in Sell - passed "+priceBasedOn);
+		try {
+			Thread.sleep(1000*10);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Double newPrice = new Double(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
+		if (newPrice < priceBasedOn) {
+			System.out.println("Confidence Gained with new Price "+newPrice);
+			return true;
+		}
+		else if (newPrice == priceBasedOn) return gainConfidenceInBuy(priceBasedOn);
+		else{
+			System.out.println("Confidence Lost with new Price "+newPrice);
+			return false;}
+	}
 	
 	public void fakeSell() {
 		
@@ -165,11 +231,14 @@ public class CoinWatcher implements Runnable{
 			
 			Double lastPrice = Double.valueOf(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 			synchronized (CoinWatcherManager.amountEthereum) {
-				System.out.println("CoinWatcher - selling "+thisSymbol+" | Profit: "+(boughtAt - lastPrice)*quantity );
-				System.out.println("Current following - " + (GlobalVariables.followingEthereumFake - GlobalVariables.startingFakeAmount));
+				System.out.println("CoinWatcher - selling "+thisSymbol+" | Profit Per: "+(lastPrice - boughtAt )+" | quantity: "+quantity+" | % Incr : "+((lastPrice / boughtAt)*100 )+" | Selling At: "+lastPrice);
+				Double lastEthAmount = new Double(CoinWatcherManager.amountEthereum);
 				CoinWatcherManager.amountEthereum += lastPrice * quantity;
 				try {
-					TraderManager.writer.write(CoinWatcherManager.amountEthereum.toString());
+					Double newAmount = new Double(CoinWatcherManager.amountEthereum);
+					String currAmount = newAmount.toString();
+					TraderManager.writer.write( currAmount + " - % incr since last " + ((newAmount / lastEthAmount)*100 )+" - % incr since start "+((newAmount / GlobalVariables.startingFakeAmount)*100) + " - TimeStarted "+TraderManager.timeStarted.toString());
+					TraderManager.writer.newLine();
 					TraderManager.writer.flush();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -192,22 +261,22 @@ public class CoinWatcher implements Runnable{
 					
 					//highest profit so far is stored as the difference between the price then and the original price
 					Double profitDiff = highestProfitInPrice ;
+					if (priceDiff > (highestProfitInPrice+boughtAt)) highestProfitInPrice = priceDiff-boughtAt;
 					
 					
-					System.out.println("bought at "+boughtAt+"  |  current price "+priceDiff+"  |  "+highestProfitInPrice);
-					System.out.println("price diff " +priceDiff+" - Cutoff "+((highestProfitInPrice+boughtAt)*GlobalVariables.stopLossCutOff));
+					System.out.println("bought at "+boughtAt+"  |  current price "+priceDiff+"  | highest profit "+(highestProfitInPrice+boughtAt));
+					System.out.println("should sell at "+(boughtAt*0.95)+" - OR - "+((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt));
 					
 					//if the difference is bigger than the % decreace allowed for a coin then SELL SELL SELL
-					if (priceDiff < ((highestProfitInPrice+boughtAt)*GlobalVariables.stopLossCutOff)) {
+					if (priceDiff < ((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt)) {
 					    //TODO implement 	getConfidenceInMove();
-						return true;
+						return gainConfidenceInSell(priceDiff);
 					}
-					else if(priceDiff < boughtAt) {
+					else if(priceDiff < (boughtAt*0.95)) {
 						return true;
 					}
 					
 					//if the new price is bigger than the highestProfitSoFar then replace the highestProfit so far
-					if (priceDiff > (highestProfitInPrice+boughtAt)) highestProfitInPrice = priceDiff-boughtAt;
 					
 					
 				}

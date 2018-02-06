@@ -38,46 +38,56 @@ public class CoinCandlestickGetter extends TimerTask{
 				TopCoinDeterminer.currentCoinIndex =TopCoinDeterminer.currentCoinIndex +1;
 				System.out.println(currentCoin+ " Is the current coin the coincandlestickGetter is on");
 			}
-			
+			boolean newCoin = false;
 			//get the average over the last 12 hours 
-			List<Candlestick> candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.TWELVE_HOURLY);
-			Double largerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWELVE_HOURLY)));
-			
-			//get the average over the last 4 hours 
-			candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FOUR_HORLY);
-			Double smallerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FOUR_HORLY)));
-			
-			Double difference = smallerTimeperiodEMA - largerTimeperiodEMA;
-			Double percentageDifference = (difference / largerTimeperiodEMA) *100;
-			System.out.println("Smaller "+smallerTimeperiodEMA +" | Larger "+ largerTimeperiodEMA+ " | Profit % "+percentageDifference);
-			MovingAverageAgg newMAAgg = new MovingAverageAgg(currentCoin, percentageDifference);
-			
-			synchronized (TopCoinDeterminer.sortedTopSymbols) {
+			List<Candlestick> candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.TWO_HOURLY);
+			if (candlesticks.size() < 2)newCoin = true; 
+			if (!newCoin) {
+				Double largerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWO_HOURLY)));
 				
-				//Then add to the list of TopSymbols if the list hasnt reached 5 TODO : move 5 into a constant to be managed
-				if (TopCoinDeterminer.sortedTopSymbols.size() < GlobalVariables.numberOfWatchers) {
-					
-					TopCoinDeterminer.sortedTopSymbols.add(newMAAgg);
-					
-					//Then sort
-					Collections.sort(TopCoinDeterminer.sortedTopSymbols, Collections.reverseOrder());
-				}
+				//get the average over the last 4 hours 
+				candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FIFTEEN_MINUTES);
+				Double smallerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FIFTEEN_MINUTES)));
 				
-				//else if the lowest agg within the list is lower than this agg, remove it, add this new one and sort
-				else if(TopCoinDeterminer.sortedTopSymbols.get(TopCoinDeterminer.sortedTopSymbols.size() - 1).getAgg()
-							< newMAAgg.getAgg()) {
-					
-					TopCoinDeterminer.sortedTopSymbols.remove(TopCoinDeterminer.sortedTopSymbols.size() - 1);
-					TopCoinDeterminer.sortedTopSymbols.add(newMAAgg);
-					Collections.sort(TopCoinDeterminer.sortedTopSymbols, Collections.reverseOrder());
+				Double largerTimeperiodEMA2 = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWO_HOURLY)));
+				
+				//get the average over the last 4 hours 
+				candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FIFTEEN_MINUTES);
+				Double smallerTimeperiodEMA2 = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FIFTEEN_MINUTES)));
+				
+				Double difference = smallerTimeperiodEMA - largerTimeperiodEMA;
+				Double percentageDifference = (difference / largerTimeperiodEMA) *100;
+				System.out.println("Smaller "+smallerTimeperiodEMA +" | Larger "+ largerTimeperiodEMA);
+				MovingAverageAgg newMAAgg = new MovingAverageAgg(currentCoin, percentageDifference);
+				Double volume = new Double(client.get24HrPriceStatistics(currentCoin).getVolume());
+				System.out.println("Volume : "+volume);
+				if (volume >600d && (smallerTimeperiodEMA - largerTimeperiodEMA) > 0 && (smallerTimeperiodEMA2 - largerTimeperiodEMA2) > 0 ) {
+					synchronized (TopCoinDeterminer.sortedTopSymbols) {
+						
+						//Then add to the list of TopSymbols if the list hasnt reached 5 TODO : move 5 into a constant to be managed
+						if (TopCoinDeterminer.sortedTopSymbols.size() < GlobalVariables.numberOfWatchers) {
+							
+							TopCoinDeterminer.sortedTopSymbols.add(newMAAgg);
+							
+							//Then sort
+							Collections.sort(TopCoinDeterminer.sortedTopSymbols, Collections.reverseOrder());
+						}
+						
+						//else if the lowest agg within the list is lower than this agg, remove it, add this new one and sort
+						else if(TopCoinDeterminer.sortedTopSymbols.get(TopCoinDeterminer.sortedTopSymbols.size() - 1).getAgg()
+									< newMAAgg.getAgg()) {
+							
+							TopCoinDeterminer.sortedTopSymbols.remove(TopCoinDeterminer.sortedTopSymbols.size() - 1);
+							TopCoinDeterminer.sortedTopSymbols.add(newMAAgg);
+							Collections.sort(TopCoinDeterminer.sortedTopSymbols, Collections.reverseOrder());
+						}
+					}
 				}
 			}
-			
 			if (TopCoinDeterminer.currentCoinIndex == TopCoinDeterminer.allSymbols.size()) {
 				TopCoinDeterminer.stopRetrieval();
 			}
-		}
-		
+		}	
 	}
 	
 }

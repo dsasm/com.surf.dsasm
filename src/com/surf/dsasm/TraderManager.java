@@ -3,6 +3,7 @@ package com.surf.dsasm;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
@@ -19,7 +20,7 @@ public class TraderManager {
 	
 	public static BinanceApiRestClient client;
 	public static BufferedWriter writer ;
-	
+	public static LocalTime timeStarted = LocalTime.now();
 	public void tryout() {
 		try {
 			writer =  new BufferedWriter(new FileWriter("fakeEthereumTracker.txt"));
