@@ -1,5 +1,6 @@
 package com.surf.dsasm;
 
+import java.io.IOException;
 import java.util.List;
 
 import com.binance.api.client.domain.market.Candlestick;
@@ -19,7 +20,7 @@ public class CoinWatcher implements Runnable{
 	
 	
 	public void run(){
-		
+		boolean skip = false;
 		//Get a Symbol to be watching
 		synchronized (TopCoinDeterminer.queueGoodCoins) {
 				while(TopCoinDeterminer.queueGoodCoins.size() == 0) {
@@ -30,15 +31,19 @@ public class CoinWatcher implements Runnable{
 		running = true;
 		//These loops need to be thought through and changed based on how we are going to determine when a thread should stop
 		while (running) {
+			long timeStartedWatching = System.currentTimeMillis();
 
 			System.out.println("CoinWatcher - Inside Running");
 			//While nothing has been bought
-			while(!bought) {
+			while(!bought && !skip) {
 				boolean shouldBuy = shouldBuy();
 				//Check if a buy should be placed
 				System.out.println("CoinWatcher - Should Buy "+shouldBuy);
 				if (shouldBuy ) {
 					fakeBuy();
+				}
+				else if (System.currentTimeMillis() - timeStartedWatching > 1000*60*30) {
+					skip = true;
 				}
 				//Else wait 30 seconds and check again
 				else {
@@ -53,19 +58,22 @@ public class CoinWatcher implements Runnable{
 			}
 			System.out.println("CoinWatcher - bought "+thisSymbol);
 			//Items have been bought so check on them more often and determine when to sell
-			try {
-				watchIntently();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			if (!skip) {
+				try {
+					watchIntently();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 			getNewCoin();
+			bought = false;
+			skip = false;
 		}
 		
 	}
 	
 	public void getNewCoin() {
-		synchronized(TopCoinDeterminer.queueGoodCoins) {
 			if (TopCoinDeterminer.queueGoodCoins.size() ==0) {
 				System.out.println("CoinWatcher - regen Queue" );
 				TopCoinDeterminer.emptyQueue();
@@ -73,9 +81,11 @@ public class CoinWatcher implements Runnable{
 			while(TopCoinDeterminer.queueGoodCoins.size() == 0) {
 				
 			}
-			System.out.println("CoinWatcher - get new coin");
-			thisSymbol = TopCoinDeterminer.queueGoodCoins.poll();
-		}
+
+			synchronized(TopCoinDeterminer.queueGoodCoins) {
+				System.out.println("CoinWatcher - get new coin");
+				thisSymbol = TopCoinDeterminer.queueGoodCoins.poll();
+			}
 	}
 	public void watchIntently() throws InterruptedException {
 		
@@ -158,6 +168,13 @@ public class CoinWatcher implements Runnable{
 				System.out.println("CoinWatcher - selling "+thisSymbol+" | Profit: "+(boughtAt - lastPrice)*quantity );
 				System.out.println("Current following - " + (GlobalVariables.followingEthereumFake - GlobalVariables.startingFakeAmount));
 				CoinWatcherManager.amountEthereum += lastPrice * quantity;
+				try {
+					TraderManager.writer.write(CoinWatcherManager.amountEthereum.toString());
+					TraderManager.writer.flush();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				quantity = 0d;
 			}
 		}

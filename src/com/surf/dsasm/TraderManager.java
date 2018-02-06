@@ -1,5 +1,8 @@
 package com.surf.dsasm;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
@@ -15,9 +18,15 @@ import com.binance.api.client.domain.market.TickerStatistics;
 public class TraderManager {
 	
 	public static BinanceApiRestClient client;
-
+	public static BufferedWriter writer ;
 	
 	public void tryout() {
+		try {
+			writer =  new BufferedWriter(new FileWriter("fakeEthereumTracker.txt"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		BinanceApiClientFactory factory = createNewFactory(System.getProperty("apikey"),
 			System.getProperty("secret"));
 		BinanceApiRestClient client = factory.newRestClient();
