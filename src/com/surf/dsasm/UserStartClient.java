@@ -20,7 +20,7 @@ public class UserStartClient implements Runnable {
 	private boolean connected = false;
 	private boolean stopped = false;
 	private String connectionId = null;
-	private Thread threadToActuallyDoShit;
+	private Thread pollingThread;
 	private BinanceApiRestClient binanceClient = null;
 	private BinanceApiClientFactory binanceFactory = null;
 	private BinanceAccountHandler accountHandler = null;
@@ -97,6 +97,31 @@ public class UserStartClient implements Runnable {
 			}
 		} catch (InterruptedException e) {
 			// Left empty on purpose
+		}
+	}
+	
+	public void stop() {
+		this.connected = false;
+		this.stopped = true;
+		//also stop any threads in here that this has to start. 
+	}
+	public String getConnectionId() {
+		return connectionId;
+	}
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	public void start() {
+		if(pollingThread == null) {
+			if(log.isLoggable(Level.FINE)) {
+				log.log(Level.ALL, "starting client thread");
+			}
+			pollingThread = new Thread(this);
+			//Re use smae class loader to try and avoid any duplicate instances
+			pollingThread.setContextClassLoader(Thread.currentThread().getContextClassLoader());
+			pollingThread.setDaemon(true);
+			pollingThread.start();
 		}
 	}
 }
