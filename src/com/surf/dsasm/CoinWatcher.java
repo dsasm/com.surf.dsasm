@@ -18,8 +18,8 @@ public class CoinWatcher implements Runnable{
 	Double boughtAt;
 	Double soldAt;
 	Double quantity;
-	
-	
+	int isSelling = 0;
+	boolean hasPassedAThreshold = false;
 	public void run(){
 		boolean skip = false;
 		//Get a Symbol to be watching
@@ -32,6 +32,7 @@ public class CoinWatcher implements Runnable{
 		running = true;
 		//These loops need to be thought through and changed based on how we are going to determine when a thread should stop
 		while (running) {
+			hasPassedAThreshold = false;
 			long timeStartedWatching = System.currentTimeMillis();
 
 			System.out.println("CoinWatcher - Inside Running");
@@ -208,6 +209,7 @@ public class CoinWatcher implements Runnable{
 		//wait a half minute then check if it has increased, then buy
 		//wait a half minute then check if it has increased, then buy
 		System.out.println("Gaining Confidence in Sell - passed "+priceBasedOn);
+		isSelling = isSelling +1;
 		try {
 			Thread.sleep(1000*10);
 		} catch (InterruptedException e) {
@@ -220,6 +222,11 @@ public class CoinWatcher implements Runnable{
 			return true;
 		}
 		else if (newPrice == priceBasedOn) return gainConfidenceInBuy(priceBasedOn);
+		else if(isSelling >3) {
+			isSelling=0;
+			System.out.println("Confidence Gained with how long its been hodling");
+			return true;
+		}
 		else{
 			System.out.println("Confidence Lost with new Price "+newPrice);
 			return false;}
@@ -258,7 +265,7 @@ public class CoinWatcher implements Runnable{
 					
 					//work out the difference between the original price and the price now
 					Double priceDiff = new Double(price.getPrice());
-					
+					if ((highestProfitInPrice+boughtAt) / boughtAt > 1.002) hasPassedAThreshold = true; 
 					//highest profit so far is stored as the difference between the price then and the original price
 					Double profitDiff = highestProfitInPrice ;
 					if (priceDiff > (highestProfitInPrice+boughtAt)) highestProfitInPrice = priceDiff-boughtAt;
@@ -268,13 +275,17 @@ public class CoinWatcher implements Runnable{
 					System.out.println("should sell at "+(boughtAt*0.95)+" - OR - "+((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt));
 					
 					//if the difference is bigger than the % decreace allowed for a coin then SELL SELL SELL
-					if (priceDiff < ((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt)) {
+					if (priceDiff < ((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt )
+							&& ((highestProfitInPrice+boughtAt) / boughtAt > 1.002) 
+							&& ((priceDiff-boughtAt) /(highestProfitInPrice) > 0.9) ) {
 					    //TODO implement 	getConfidenceInMove();
 						return gainConfidenceInSell(priceDiff);
 					}
-					else if(priceDiff < (boughtAt*0.95)) {
+					else if ((priceDiff-boughtAt) /(highestProfitInPrice) < 0.9) return true;
+					else if(priceDiff < (boughtAt*0.99)) {
 						return true;
 					}
+					else if(hasPassedAThreshold && ((highestProfitInPrice+boughtAt) / boughtAt < 1.002)) return true;
 					
 					//if the new price is bigger than the highestProfitSoFar then replace the highestProfit so far
 					
