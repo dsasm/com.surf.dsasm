@@ -28,6 +28,7 @@ public class TopCoinDeterminer implements Runnable {
 	public static List<MovingAverageAgg> sortedTopSymbols = new LinkedList<MovingAverageAgg>();
 	public static Queue<String> queueGoodCoins = new ConcurrentLinkedQueue<String>();
 	public static boolean finished = false;
+	public static boolean retrieving = false;
 	
 	public TopCoinDeterminer(BinanceApiRestClient client) {
 		TopCoinDeterminer.client = client;
@@ -58,8 +59,10 @@ public class TopCoinDeterminer implements Runnable {
 	}
 		
 	public static void emptyQueue() {
+		retrieving = true;
 		System.out.println("Queue was empty, regenerating");
 		generateQueue();
+		retrieving = false;
 	}
 
 	public static void stopRetrieval() {
@@ -80,6 +83,8 @@ public class TopCoinDeterminer implements Runnable {
 			System.out.println("Setting finished to true and clearing the list" );
 			finished = true;
 			sortedTopSymbols.clear();
+			allSymbols.clear();
+			currentCoinIndex = 0;
 		}
 		
 	}

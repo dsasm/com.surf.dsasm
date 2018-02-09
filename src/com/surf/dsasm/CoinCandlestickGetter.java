@@ -85,6 +85,7 @@ public class CoinCandlestickGetter extends TimerTask{
 				}
 			}
 			if (TopCoinDeterminer.currentCoinIndex == TopCoinDeterminer.allSymbols.size()) {
+				
 				TopCoinDeterminer.stopRetrieval();
 			}
 		}	

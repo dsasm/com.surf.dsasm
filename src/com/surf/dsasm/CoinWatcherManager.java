@@ -33,8 +33,9 @@ public class CoinWatcherManager implements Runnable{
 	
 	public void run() {
 		System.out.println("Running CoinWatchers");
-		
-		pool.execute(new CoinWatcher());
+		for(int i = 0 ; i < GlobalVariables.numberOfWatchers; i++) {
+			pool.execute(new CoinWatcher());
+		}
 		
 	}
 

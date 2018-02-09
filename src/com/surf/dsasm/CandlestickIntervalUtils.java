@@ -33,9 +33,6 @@ public class CandlestickIntervalUtils {
 			case TWO_HOURLY:
 				return 120;
 				
-			case FOUR_HORLY:
-				return 240;
-				
 			case SIX_HOURLY:
 				return 360;
 				
@@ -54,7 +51,7 @@ public class CandlestickIntervalUtils {
 			case WEEKLY:
 				return 10080;
 			default:
-				return 0;
+				return 240;
 		}
 	}
 

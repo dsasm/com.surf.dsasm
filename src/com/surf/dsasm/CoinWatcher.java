@@ -24,10 +24,11 @@ public class CoinWatcher implements Runnable{
 		boolean skip = false;
 		//Get a Symbol to be watching
 		synchronized (TopCoinDeterminer.queueGoodCoins) {
-				while(TopCoinDeterminer.queueGoodCoins.size() == 0) {
-					System.out.println(TopCoinDeterminer.queueGoodCoins.size());
-				}
-				thisSymbol =TopCoinDeterminer.queueGoodCoins.poll();
+			while(TopCoinDeterminer.queueGoodCoins.size() == 0) {
+				System.out.println(TopCoinDeterminer.queueGoodCoins.size());
+			}
+			thisSymbol =TopCoinDeterminer.queueGoodCoins.poll();
+			System.out.println("Thread Accepted "+thisSymbol);
 		}
 		running = true;
 		//These loops need to be thought through and changed based on how we are going to determine when a thread should stop
@@ -35,7 +36,7 @@ public class CoinWatcher implements Runnable{
 			hasPassedAThreshold = false;
 			long timeStartedWatching = System.currentTimeMillis();
 
-			System.out.println("CoinWatcher - Inside Running");
+			System.out.println("CoinWatcher - "+thisSymbol+" - Inside Running");
 			//While nothing has been bought
 			while(!bought && !skip) {
 				boolean shouldBuy = shouldBuy();
@@ -71,11 +72,11 @@ public class CoinWatcher implements Runnable{
 				}
 				
 			}
-			if (bought)System.out.println("CoinWatcher - bought "+thisSymbol);
+			if (bought)System.out.println("CoinWatcher - "+thisSymbol+" - bought "+thisSymbol);
 			//Items have been bought so check on them more often and determine when to sell
 			if (!skip) {
 				try {
-					System.out.println("should watch intently");
+					System.out.println("CoinWatcher - "+thisSymbol+" - should watch intently");
 					watchIntently();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -93,18 +94,17 @@ public class CoinWatcher implements Runnable{
 	}
 	
 	public void getNewCoin() {
+		synchronized(TopCoinDeterminer.queueGoodCoins) {
 			if (TopCoinDeterminer.queueGoodCoins.size() ==0) {
-				System.out.println("CoinWatcher - regen Queue" );
+				System.out.println("CoinWatcher - "+thisSymbol+" - regen Queue" );
 				TopCoinDeterminer.emptyQueue();
 			}
-			while(TopCoinDeterminer.queueGoodCoins.size() == 0) {
+			while(TopCoinDeterminer.retrieving) {
 				
 			}
 
-			synchronized(TopCoinDeterminer.queueGoodCoins) {
-				System.out.println("CoinWatcher - get new coin");
-				thisSymbol = TopCoinDeterminer.queueGoodCoins.poll();
-			}
+			System.out.println("CoinWatcher - "+thisSymbol+" - get new coin");
+		}
 	}
 	public void watchIntently() throws InterruptedException {
 		
@@ -116,7 +116,7 @@ public class CoinWatcher implements Runnable{
 				sold=true;
 			}
 			//If shouldnt sell, wait 15 seconds and try again
-			if (!sold ) Thread.sleep(1000*15);
+			if (!sold ) Thread.sleep(1000*5);
 		}
 	}
 	
@@ -133,7 +133,7 @@ public class CoinWatcher implements Runnable{
 	public boolean shouldBuy() {
 		
 		synchronized (CoinWatcherManager.client) {
-			
+			System.out.println("CoinWatcher - "+thisSymbol+" - shouldBuy?");
 			//Get the candlesticks in 5 minute chunks
 			List<Candlestick> candlesticks = CoinWatcherManager.client.getCandlestickBars(thisSymbol, CandlestickInterval.FIVE_MINUTES);
 			
@@ -146,7 +146,7 @@ public class CoinWatcher implements Runnable{
 			List<TickerPrice> prices = CoinWatcherManager.client.getAllPrices();
 			for(TickerPrice price : prices) {
 				if (price.getSymbol().equals(thisSymbol)) {
-					System.out.print("ShouldBuy - opening : "+openingPrice + "  |  neededForBuy : "+priceIndicatingASpike+"  |  current : "+price.getPrice());
+					System.out.print("CoinWatcher - "+thisSymbol+" - ShouldBuy - opening : "+openingPrice + "  |  neededForBuy : "+priceIndicatingASpike+"  |  current : "+price.getPrice());
 					if(Double.valueOf(price.getPrice()) >= priceIndicatingASpike) {
 						return gainConfidenceInBuy(new Double(price.getPrice()));
 					}
@@ -187,7 +187,7 @@ public class CoinWatcher implements Runnable{
 	}
 	public boolean gainConfidenceInBuy(Double priceBasedOn) {
 		//wait a half minute then check if it has increased, then buy
-		System.out.println("Gaining Confidence in Buy - passed "+priceBasedOn);
+		System.out.println("CoinWatcher - "+thisSymbol+" - Gaining Confidence in Buy - passed "+priceBasedOn);
 		try {
 			Thread.sleep(1000*30);
 		} catch (InterruptedException e) {
@@ -197,18 +197,18 @@ public class CoinWatcher implements Runnable{
 		Double newPrice = new Double(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 		
 		if (newPrice > priceBasedOn) {
-			System.out.println("Confidence Gained with new Price "+newPrice);
+			System.out.println("CoinWatcher - "+thisSymbol+" - Confidence Gained with new Price "+newPrice);
 			return true;
 		}
 		else if (newPrice == priceBasedOn) return gainConfidenceInBuy(priceBasedOn);
 		else{
-			System.out.println("Confidence Lost with new Price "+newPrice);
+			System.out.println("CoinWatcher - "+thisSymbol+" - Confidence Lost with new Price "+newPrice);
 			return false;}
 	}
 	public boolean gainConfidenceInSell(Double priceBasedOn) {
 		//wait a half minute then check if it has increased, then buy
 		//wait a half minute then check if it has increased, then buy
-		System.out.println("Gaining Confidence in Sell - passed "+priceBasedOn);
+		System.out.println("CoinWatcher - "+thisSymbol+" - Gaining Confidence in Sell - passed "+priceBasedOn);
 		isSelling = isSelling +1;
 		try {
 			Thread.sleep(1000*10);
@@ -218,17 +218,17 @@ public class CoinWatcher implements Runnable{
 		}
 		Double newPrice = new Double(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 		if (newPrice < priceBasedOn) {
-			System.out.println("Confidence Gained with new Price "+newPrice);
+			System.out.println("CoinWatcher - "+thisSymbol+" - Confidence Gained with new Price "+newPrice);
 			return true;
 		}
 		else if (newPrice == priceBasedOn) return gainConfidenceInBuy(priceBasedOn);
 		else if(isSelling >3) {
 			isSelling=0;
-			System.out.println("Confidence Gained with how long its been hodling");
+			System.out.println("CoinWatcher - "+thisSymbol+" - Confidence Gained with how long its been hodling");
 			return true;
 		}
 		else{
-			System.out.println("Confidence Lost with new Price "+newPrice);
+			System.out.println("CoinWatcher - "+thisSymbol+" - Confidence Lost with new Price "+newPrice);
 			return false;}
 	}
 	
@@ -239,7 +239,7 @@ public class CoinWatcher implements Runnable{
 			
 			Double lastPrice = Double.valueOf(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
 			synchronized (CoinWatcherManager.amountEthereum) {
-				System.out.println("1 - CoinWatcher - selling "+thisSymbol+" | Profit Per: "+(lastPrice - boughtAt )+" | quantity: "+quantity+" | % Incr : "+((lastPrice / boughtAt)*100 )+" | Selling At: "+lastPrice);
+				System.out.println("CoinWatcher - "+thisSymbol+" - 1 - CoinWatcher - selling "+thisSymbol+" | Profit Per: "+(lastPrice - boughtAt )+" | quantity: "+quantity+" | % Incr : "+((lastPrice / boughtAt)*100 )+" | Selling At: "+lastPrice);
 				Double lastEthAmount = new Double(CoinWatcherManager.amountEthereum);
 				CoinWatcherManager.amountEthereum += lastPrice * quantity;
 				try {
@@ -271,8 +271,8 @@ public class CoinWatcher implements Runnable{
 					if (priceDiff > (highestProfitInPrice+boughtAt)) highestProfitInPrice = priceDiff-boughtAt;
 					
 					
-					System.out.println("bought at "+boughtAt+"  |  current price "+priceDiff+"  | highest profit "+(highestProfitInPrice+boughtAt));
-					System.out.println("should sell at "+(boughtAt*0.95)+" - OR - "+((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt));
+					System.out.println("CoinWatcher - "+thisSymbol+" - bought at "+boughtAt+"  |  current price "+priceDiff+"  | highest profit "+(highestProfitInPrice+boughtAt));
+					System.out.println("CoinWatcher - "+thisSymbol+" - should sell at "+(boughtAt*0.95)+" - OR - "+((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt));
 					
 					//if the difference is bigger than the % decreace allowed for a coin then SELL SELL SELL
 					if (priceDiff < ((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt )
