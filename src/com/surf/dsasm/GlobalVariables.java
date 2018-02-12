@@ -9,7 +9,7 @@ public class GlobalVariables {
 	
 	
 	//essentially the number of coins to watch
-	public static final int numberOfWatchers = 3;
+	public static final int numberOfWatchers = 1;
 	
 	//The percentage of the highest profit a current coins price is allowed to be before SELL SELL SELL
 	public static final Double stopLossCutOff = 0.95;

@@ -2,6 +2,7 @@ package com.surf.dsasm;
 
 import java.io.IOException;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.binance.api.client.domain.market.Candlestick;
@@ -97,11 +98,14 @@ public class CoinWatcher implements Runnable{
 		synchronized(TopCoinDeterminer.queueGoodCoins) {
 			if (TopCoinDeterminer.queueGoodCoins.size() ==0) {
 				System.out.println("CoinWatcher - "+thisSymbol+" - regen Queue" );
+				thisSymbol = null;
 				TopCoinDeterminer.emptyQueue();
 			}
-			while(TopCoinDeterminer.retrieving) {
+			while(TopCoinDeterminer.retrieving || TopCoinDeterminer.queueGoodCoins.size() == 0) {
 				
 			}
+			
+			thisSymbol = TopCoinDeterminer.queueGoodCoins.poll();
 
 			System.out.println("CoinWatcher - "+thisSymbol+" - get new coin");
 		}
@@ -111,6 +115,7 @@ public class CoinWatcher implements Runnable{
 		//While the coins havent been sold
 		while(!sold) {
 			//Check if they should be sold
+			System.out.println("About to check if it should sell");
 			if (shouldSell()) {
 				fakeSell();
 				sold=true;
@@ -133,27 +138,33 @@ public class CoinWatcher implements Runnable{
 	public boolean shouldBuy() {
 		
 		synchronized (CoinWatcherManager.client) {
-			System.out.println("CoinWatcher - "+thisSymbol+" - shouldBuy?");
-			//Get the candlesticks in 5 minute chunks
-			List<Candlestick> candlesticks = CoinWatcherManager.client.getCandlestickBars(thisSymbol, CandlestickInterval.FIVE_MINUTES);
-			
-			
-			
-			//Get the very earliest price which will be used to base whether or not to buy and sell
-			Double openingPrice = new Double(candlesticks.get(candlesticks.size() -3).getHigh());
-			Double priceIndicatingASpike = openingPrice * (1+GlobalVariables.buyingPercentage);
-			
-			List<TickerPrice> prices = CoinWatcherManager.client.getAllPrices();
-			for(TickerPrice price : prices) {
-				if (price.getSymbol().equals(thisSymbol)) {
-					System.out.print("CoinWatcher - "+thisSymbol+" - ShouldBuy - opening : "+openingPrice + "  |  neededForBuy : "+priceIndicatingASpike+"  |  current : "+price.getPrice());
-					if(Double.valueOf(price.getPrice()) >= priceIndicatingASpike) {
-						return gainConfidenceInBuy(new Double(price.getPrice()));
-					}
-					break;
-					
-				}
-			}
+//			System.out.println("CoinWatcher - "+thisSymbol+" - shouldBuy?");
+//			//Get the candlesticks in 5 minute chunks
+//			List<Candlestick> candlesticks = CoinWatcherManager.client.getCandlestickBars(thisSymbol, CandlestickInterval.FIVE_MINUTES);
+//			
+//			
+//			
+//			//Get the very earliest price which will be used to base whether or not to buy and sell
+//			Double openingPrice = new Double(candlesticks.get(candlesticks.size() -3).getHigh());
+//			Double priceIndicatingASpike = openingPrice * (1+GlobalVariables.buyingPercentage);
+//			
+//			List<TickerPrice> prices = CoinWatcherManager.client.getAllPrices();
+//			for(TickerPrice price : prices) {
+//				if (price.getSymbol().equals(thisSymbol)) {
+//					System.out.print("CoinWatcher - "+thisSymbol+" - ShouldBuy - opening : "+openingPrice + "  |  neededForBuy : "+priceIndicatingASpike+"  |  current : "+price.getPrice());
+//					if(Double.valueOf(price.getPrice()) >= priceIndicatingASpike) {
+//						return gainConfidenceInBuy(new Double(price.getPrice()));
+//					}
+//					break;
+//					
+//				}
+//			}
+			Double MADiff = MovingAverageGetter.getMovingAverageDiff(thisSymbol, CandlestickInterval.FIFTEEN_MINUTES, CandlestickInterval.FIVE_MINUTES);
+			List<Candlestick> candlesticks2 = CoinWatcherManager.client.getCandlestickBars(thisSymbol, CandlestickInterval.FIVE_MINUTES);
+			Double latestOpen = Double.valueOf(candlesticks2.get(candlesticks2.size() - 1).getOpen());
+			Double latestClose = Double.valueOf(candlesticks2.get(candlesticks2.size() - 1).getClose());
+			System.out.println("SYMBOL: "+thisSymbol+" should buy? %diff MA = "+MADiff.toString() +" latestOpen  : "+latestOpen+" vs latestClose : "+latestClose);
+			if (MADiff > 1.001 && latestClose > latestOpen) return gainConfidenceInBuy(latestClose);
 			
 			return false;
 			
@@ -187,23 +198,40 @@ public class CoinWatcher implements Runnable{
 	}
 	public boolean gainConfidenceInBuy(Double priceBasedOn) {
 		//wait a half minute then check if it has increased, then buy
-		System.out.println("CoinWatcher - "+thisSymbol+" - Gaining Confidence in Buy - passed "+priceBasedOn);
-		try {
-			Thread.sleep(1000*30);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		List<Boolean> confArray =  new ArrayList<Boolean>();
+		int counter = 0;
+		boolean stillGettingConf = true;
+		while(counter < 3 ) {
+			System.out.println("CoinWatcher - "+thisSymbol+" - Gaining Confidence in Buy - passed "+priceBasedOn);
+			try {
+				Thread.sleep(1000*5);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Double newPrice = new Double(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
+			Double percDiff = newPrice / priceBasedOn * 100;
+			if (percDiff > 100.05) {
+				System.out.println("CoinWatcher - "+thisSymbol+" - Confidence Gained with new Price "+newPrice);
+				counter ++;
+				confArray.add(true);
+				priceBasedOn = newPrice;
+			}
+			else if (percDiff < 99.95) {
+				System.out.println("CoinWatcher - "+thisSymbol+" - Confidence Lost with new Price "+newPrice);
+				counter++;
+				confArray.add(false);
+				priceBasedOn = newPrice;
+			}
 		}
-		Double newPrice = new Double(CoinWatcherManager.client.get24HrPriceStatistics(thisSymbol).getLastPrice());
-		
-		if (newPrice > priceBasedOn) {
-			System.out.println("CoinWatcher - "+thisSymbol+" - Confidence Gained with new Price "+newPrice);
-			return true;
+		int confCounter = 0;
+		System.out.print("Confidence OutCome: ");
+		for (int i = 0; i < confArray.size(); i ++) {
+			System.out.print(confArray.get(i)+" - ");
+			if (confArray.get(i)) confCounter++;
 		}
-		else if (newPrice == priceBasedOn) return gainConfidenceInBuy(priceBasedOn);
-		else{
-			System.out.println("CoinWatcher - "+thisSymbol+" - Confidence Lost with new Price "+newPrice);
-			return false;}
+		System.out.print(" returning : "+confCounter);
+		return (confCounter >= 2);
 	}
 	public boolean gainConfidenceInSell(Double priceBasedOn) {
 		//wait a half minute then check if it has increased, then buy
@@ -276,13 +304,12 @@ public class CoinWatcher implements Runnable{
 					
 					//if the difference is bigger than the % decreace allowed for a coin then SELL SELL SELL
 					if (priceDiff < ((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt )
-							&& ((highestProfitInPrice+boughtAt) / boughtAt > 1.002) 
-							&& ((priceDiff-boughtAt) /(highestProfitInPrice) > 0.9) ) {
+							&& ((priceDiff-boughtAt) /(highestProfitInPrice) > 0.97) ) {
 					    //TODO implement 	getConfidenceInMove();
 						return gainConfidenceInSell(priceDiff);
 					}
-					else if ((priceDiff-boughtAt) /(highestProfitInPrice) < 0.9) return true;
-					else if(priceDiff < (boughtAt*0.99)) {
+					else if ((priceDiff-boughtAt) /(highestProfitInPrice) < 0.97) return true;
+					else if(priceDiff < (boughtAt*0.95)) {
 						return true;
 					}
 					else if(hasPassedAThreshold && ((highestProfitInPrice+boughtAt) / boughtAt < 1.002)) return true;
@@ -293,6 +320,9 @@ public class CoinWatcher implements Runnable{
 				}
 			}
 		}
+//		Double MADiff = MovingAverageGetter.getMovingAverageDiff(thisSymbol, CandlestickInterval.FIFTEEN_MINUTES, CandlestickInterval.FIVE_MINUTES);
+//		System.out.print("SYMBOL: "+thisSymbol+" should sell? %diff MA = "+MADiff.toString());
+//		if (MADiff < 1.001) return true;
 		return false;
 	}
 	

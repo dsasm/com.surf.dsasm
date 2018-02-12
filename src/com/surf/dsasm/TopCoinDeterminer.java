@@ -75,10 +75,8 @@ public class TopCoinDeterminer implements Runnable {
 		synchronized(sortedTopSymbols) {
 			for(MovingAverageAgg agg : sortedTopSymbols) {
 				
-				synchronized(queueGoodCoins) {
-					System.out.println("ADDING "+agg.getSymbol()+" to queue" );
-					queueGoodCoins.add(agg.getSymbol());
-				}
+				System.out.println("ADDING "+agg.getSymbol()+" to queue" );
+				queueGoodCoins.add(agg.getSymbol());
 			}
 			System.out.println("Setting finished to true and clearing the list" );
 			finished = true;

@@ -39,29 +39,35 @@ public class CoinCandlestickGetter extends TimerTask{
 				System.out.println(currentCoin+ " Is the current coin the coincandlestickGetter is on");
 			}
 			boolean newCoin = false;
+			Double MADiff = MovingAverageGetter.getMovingAverageDiff(currentCoin, CandlestickInterval.FIFTEEN_MINUTES, CandlestickInterval.FIVE_MINUTES, client);
+			MovingAverageAgg newMAAgg = new MovingAverageAgg(currentCoin, MADiff);
+			
 			//get the average over the last 12 hours 
-			List<Candlestick> candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.TWO_HOURLY);
+			List<Candlestick> candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.HOURLY);
 			if (candlesticks.size() < 2)newCoin = true; 
 			if (!newCoin) {
-				Double largerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWO_HOURLY)));
+//				Double largerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWO_HOURLY)));
+//				
+//				//get the average over the last 4 hours 
+//				candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FIFTEEN_MINUTES);
+//				Double smallerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FIFTEEN_MINUTES)));
+//				
+//				Double largerTimeperiodEMA2 = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWO_HOURLY)));
+//				
+//				//get the average over the last 4 hours 
+//				candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FIFTEEN_MINUTES);
+//				Double smallerTimeperiodEMA2 = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FIFTEEN_MINUTES)));
+//				
+//				Double difference = smallerTimeperiodEMA - largerTimeperiodEMA;
+//				Double percentageDifference = (difference / largerTimeperiodEMA) *100;
+//				System.out.println("Smaller "+smallerTimeperiodEMA +" | Larger "+ largerTimeperiodEMA);
+				List<Candlestick> candlesticks2 = client.getCandlestickBars(currentCoin, CandlestickInterval.FIVE_MINUTES);
 				
-				//get the average over the last 4 hours 
-				candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FIFTEEN_MINUTES);
-				Double smallerTimeperiodEMA = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FIFTEEN_MINUTES)));
 				
-				Double largerTimeperiodEMA2 = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.TWO_HOURLY)));
-				
-				//get the average over the last 4 hours 
-				candlesticks = client.getCandlestickBars(currentCoin, CandlestickInterval.FIFTEEN_MINUTES);
-				Double smallerTimeperiodEMA2 = CandleStickUtils.fourPointAverageExp(candlesticks.get(candlesticks.size() - 2), new Double(CandlestickIntervalUtils.timeInMinutes(CandlestickInterval.FIFTEEN_MINUTES)));
-				
-				Double difference = smallerTimeperiodEMA - largerTimeperiodEMA;
-				Double percentageDifference = (difference / largerTimeperiodEMA) *100;
-				System.out.println("Smaller "+smallerTimeperiodEMA +" | Larger "+ largerTimeperiodEMA);
-				MovingAverageAgg newMAAgg = new MovingAverageAgg(currentCoin, percentageDifference);
 				Double volume = new Double(client.get24HrPriceStatistics(currentCoin).getVolume());
 				System.out.println("Volume : "+volume);
-				if (volume >600d && (smallerTimeperiodEMA - largerTimeperiodEMA) > 0 && (smallerTimeperiodEMA2 - largerTimeperiodEMA2) > 0 ) {
+				Candlestick newestCandle =candlesticks2.get(candlesticks2.size() - 1); 
+				if (volume >80000d && Double.valueOf(newestCandle.getClose()) > Double.valueOf(newestCandle.getOpen())) {
 					synchronized (TopCoinDeterminer.sortedTopSymbols) {
 						
 						//Then add to the list of TopSymbols if the list hasnt reached 5 TODO : move 5 into a constant to be managed
