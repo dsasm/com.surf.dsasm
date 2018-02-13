@@ -91,7 +91,6 @@ public class CoinWatcher implements Runnable{
 			skip = false;
 			sold = false;
 		}
-		
 	}
 	
 	public void getNewCoin() {
@@ -303,17 +302,18 @@ public class CoinWatcher implements Runnable{
 					System.out.println("CoinWatcher - "+thisSymbol+" - should sell at "+(boughtAt*0.95)+" - OR - "+((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt));
 					
 					//if the difference is bigger than the % decreace allowed for a coin then SELL SELL SELL
-					if (priceDiff < ((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt )
+					if(hasPassedAThreshold && ((highestProfitInPrice+boughtAt) / boughtAt < 1.002)) return true;
+
+					else if ((priceDiff-boughtAt) /(highestProfitInPrice) < 0.97) return true;
+					else if(priceDiff < (boughtAt*0.98)) {
+						return true;
+					}
+					
+					else if (priceDiff < ((highestProfitInPrice*GlobalVariables.stopLossCutOff)+boughtAt )
 							&& ((priceDiff-boughtAt) /(highestProfitInPrice) > 0.97) ) {
 					    //TODO implement 	getConfidenceInMove();
 						return gainConfidenceInSell(priceDiff);
 					}
-					else if ((priceDiff-boughtAt) /(highestProfitInPrice) < 0.97) return true;
-					else if(priceDiff < (boughtAt*0.95)) {
-						return true;
-					}
-					else if(hasPassedAThreshold && ((highestProfitInPrice+boughtAt) / boughtAt < 1.002)) return true;
-					
 					//if the new price is bigger than the highestProfitSoFar then replace the highestProfit so far
 					
 					
